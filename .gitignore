@@ -1,0 +1,6 @@
+*.db
+*.zip
+*.log
+*.txt
+
+venv/
