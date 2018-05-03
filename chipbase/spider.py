@@ -1,4 +1,6 @@
 import json
+import os
+import time
 
 import requests
 from pyquery import PyQuery
@@ -54,31 +56,40 @@ def get_rp(gene_symbol):
         if 'prostate adenocarcinoma' in tr.text():
             rp = tr.text().split('\n')
             return rp[2], rp[3]
-    return None, None
+    else:
+        print('Can\'t find url: {}\n'.format(url))
+        time.sleep(10)
+        return get_rp(gene_symbol)
 
 
 # "HUMHG01012"
 
 def get_gene_sample_pair(sample):
     genes = get_gene_symbols_by_sample(sample)
-    results = []
     for gene in genes:
         rp = get_rp(gene[0])
-        print("     sample_id: {}, gene symbol: {}".format(sample_id, gene[0]))
-        results.append([sample, gene[0], gene[1], rp[0], rp[1]])
-    return results
+        print("     sample_id: {}, gene symbol: {}, r: {}, p: {}".format(sample, gene[0], rp[0], rp[1]))
+        with open('sample_gene_pair.txt', 'a') as f:
+            f.write('{},{},{},{}, {}\n '.format(sample, gene[0], gene[1], rp[0], rp[1]))
+    with open('current_sample_id.txt', 'w') as f:
+        f.write(sample)
 
 
 def get_sample_ids():
     with open('sample_ids.txt') as f:
         sample_ids = [x.strip('\n') for x in f.readlines()]
+    if os.path.exists('current_sample_id.txt'):
+        with open('current_sample_id.txt') as f:
+            current_sample_id = f.read()
+            current_sample_id = current_sample_id.strip('\n')
+        if current_sample_id in sample_ids:
+            index = sample_ids.index(current_sample_id)
+            sample_ids = sample_ids[index+1:]
     return sample_ids
 
 
 sample_ids = get_sample_ids()
 for sample_id in sample_ids:
     print('Geting sample_id: {}'.format(sample_id))
-    results = get_gene_sample_pair(sample_id)
-    for result in results:
-        with open('sample_gene_pair.txt', 'a') as f:
-            f.write('{},{},{},{}\n  '.format(result[0], result[1], result[2], result[3], result[4]))
+    get_gene_sample_pair(sample_id)
+
